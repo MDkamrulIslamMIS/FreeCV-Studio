@@ -226,6 +226,18 @@ export function App() {
     window.print();
   };
 
+  // Secret Owner shortcut: Ctrl+Shift+A (or Cmd+Shift+A) to open Admin Control Center
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        setIsAdminAdModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-100 font-sans text-slate-900 selection:bg-blue-600 selection:text-white">
       {/* Top Navigation */}

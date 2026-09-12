@@ -339,23 +339,6 @@ export const Footer: React.FC<FooterProps> = ({
                   <Globe className="w-3.5 h-3.5 text-amber-400" /> alltechacademybd.blogspot.com
                 </a>
               </li>
-              <li>
-                <button
-                  onClick={onOpenBloggerGuide}
-                  className="text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1.5 transition-colors pt-1"
-                >
-                  <Code className="w-3.5 h-3.5" /> Blogger Host & Embed Guide
-                </button>
-              </li>
-              <li>
-                <button
-                  onClick={onOpenAdminAd}
-                  className="px-2.5 py-1 text-xs font-semibold text-amber-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-amber-500/40 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
-                  title="Manage Adsterra banner scripts"
-                >
-                  <Lock className="w-3 h-3 text-amber-400" /> Ad Settings (Adsterra)
-                </button>
-              </li>
             </ul>
           </div>
         </div>
@@ -367,6 +350,13 @@ export const Footer: React.FC<FooterProps> = ({
             <span>Created & Coded by</span>
             <strong className="text-slate-300 font-medium">Md. Kamrul Islam</strong>
             <span>• All Tech Academy BD</span>
+            <button
+              onClick={onOpenAdminAd}
+              className="text-slate-600 hover:text-amber-400 transition-colors ml-1.5 inline-flex items-center gap-1"
+              title="Owner PIN Protected Login"
+            >
+              <Lock className="w-2.5 h-2.5" />
+            </button>
           </p>
           <div className="flex items-center gap-4 flex-wrap">
             <span>100% Free Forever</span>
