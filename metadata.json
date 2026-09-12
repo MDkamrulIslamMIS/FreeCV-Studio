@@ -1,0 +1,6 @@
+{
+  "name": "FreeCV Studio",
+  "description": "Create a professional CV for free with modern, classic and ATS-friendly resume templates. Customize, download and print your CV online.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

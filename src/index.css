@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-cinzel {
+    font-family: 'Cinzel', serif;
+  }
+  .font-garamond {
+    font-family: 'EB Garamond', serif;
+  }
+  .font-lora {
+    font-family: 'Lora', serif;
+  }
+  .font-merriweather {
+    font-family: 'Merriweather', serif;
+  }
+  .font-outfit {
+    font-family: 'Outfit', sans-serif;
+  }
+  .font-playfair {
+    font-family: 'Playfair Display', serif;
+  }
+  .font-jakarta {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .font-mono-code {
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .font-roboto-flex {
+    font-family: 'Roboto Flex', sans-serif;
+  }
+}
+
+/* A4 Sheet Dimensions */
+.a4-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+  background-color: #ffffff;
+  position: relative;
+}
+
+/* Screen scale for responsive preview */
+@media screen and (max-width: 900px) {
+  .a4-scale-wrapper {
+    overflow-x: auto;
+    padding-bottom: 2rem;
+  }
+}
+
+/* Page break control */
+.cv-section-block {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Print Specific Rules */
+@media print {
+  html, body {
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 11pt !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  /* Hide everything except the CV sheet */
+  body * {
+    visibility: hidden;
+  }
+
+  #cv-preview-printable,
+  #cv-preview-printable * {
+    visibility: visible;
+  }
+
+  #cv-preview-printable {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+  }
+
+  /* Hide print buttons, advertisements, toolbars, alerts */
+  .no-print,
+  button,
+  nav,
+  footer,
+  [id^="ad-slot-"] {
+    display: none !important;
+  }
+}
