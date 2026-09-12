@@ -2,22 +2,28 @@ import React from 'react';
 import { FileText, Sparkles, BookOpen, Layers, Settings, HelpCircle, Download, Code } from 'lucide-react';
 
 interface NavbarProps {
-  activeView: 'home' | 'categories' | 'templates' | 'builder';
+  activeView?: 'home' | 'categories' | 'templates' | 'builder';
+  currentView?: 'home' | 'categories' | 'templates' | 'builder';
   onNavigate: (view: 'home' | 'categories' | 'templates' | 'builder') => void;
-  onOpenAdminAd: () => void;
+  onOpenAdminAd?: () => void;
+  onOpenAdminAds?: () => void;
   onOpenBloggerGuide: () => void;
-  onOpenClearConfirm: () => void;
-  onDownloadPdf: () => void;
+  onOpenClearConfirm?: () => void;
+  onDownloadPdf?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeView,
+  currentView,
   onNavigate,
   onOpenAdminAd,
+  onOpenAdminAds,
   onOpenBloggerGuide,
   onOpenClearConfirm,
   onDownloadPdf,
 }) => {
+  const current = activeView || currentView || 'home';
+  const handleOpenAdmin = onOpenAdminAd || onOpenAdminAds || (() => {});
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,7 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="nav-home-btn"
               onClick={() => onNavigate('home')}
               className={`px-3 py-2 rounded-lg transition-colors ${
-                activeView === 'home'
+                current === 'home'
                   ? 'text-blue-600 bg-blue-50/80 font-semibold'
                   : 'hover:text-slate-900 hover:bg-slate-100'
               }`}
@@ -63,7 +69,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="nav-categories-btn"
               onClick={() => onNavigate('categories')}
               className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
-                activeView === 'categories'
+                current === 'categories'
                   ? 'text-blue-600 bg-blue-50/80 font-semibold'
                   : 'hover:text-slate-900 hover:bg-slate-100'
               }`}
@@ -75,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="nav-templates-btn"
               onClick={() => onNavigate('templates')}
               className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
-                activeView === 'templates'
+                current === 'templates'
                   ? 'text-blue-600 bg-blue-50/80 font-semibold'
                   : 'hover:text-slate-900 hover:bg-slate-100'
               }`}
@@ -87,7 +93,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="nav-builder-btn"
               onClick={() => onNavigate('builder')}
               className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
-                activeView === 'builder'
+                current === 'builder'
                   ? 'text-blue-600 bg-blue-50/80 font-semibold'
                   : 'hover:text-slate-900 hover:bg-slate-100'
               }`}
@@ -108,7 +114,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-2">
-            {activeView === 'builder' ? (
+            {/* Direct Ad Settings Button */}
+            <button
+              id="nav-admin-ad-btn"
+              onClick={handleOpenAdmin}
+              className="px-2.5 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition-colors flex items-center gap-1.5 shadow-2xs"
+              title="Click here to place Adsterra ads"
+            >
+              <Settings className="w-3.5 h-3.5 text-amber-600 animate-spin-slow" />
+              <span className="hidden sm:inline">Ad Settings</span>
+            </button>
+
+            {current === 'builder' ? (
               <>
                 <button
                   id="nav-clear-cv-btn"
@@ -137,16 +154,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Create CV Now
               </button>
             )}
-
-            {/* Quick Admin Ad Settings icon */}
-            <button
-              id="nav-admin-ad-btn"
-              onClick={onOpenAdminAd}
-              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-              title="Admin Ad Settings (Adsterra)"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
           </div>
         </div>
       </div>

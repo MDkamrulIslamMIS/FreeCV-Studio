@@ -22,17 +22,19 @@ import {
 import { KAMRUL_PHOTO } from '../data/kamrulPhoto';
 
 interface FooterProps {
-  onNavigate: (view: 'home' | 'categories' | 'templates' | 'builder') => void;
-  onOpenBloggerGuide: () => void;
-  onOpenAdminAd: () => void;
-  onOpenFAQ: () => void;
+  onNavigate?: (view: 'home' | 'categories' | 'templates' | 'builder') => void;
+  onOpenBloggerGuide?: () => void;
+  onOpenAdminAd?: () => void;
+  onOpenFAQ?: () => void;
+  onOpenStaticPage?: (page: string) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({
-  onNavigate,
-  onOpenBloggerGuide,
-  onOpenAdminAd,
-  onOpenFAQ,
+  onNavigate = (_view?: any) => {},
+  onOpenBloggerGuide = () => {},
+  onOpenAdminAd = () => {},
+  onOpenFAQ = () => {},
+  onOpenStaticPage = (_page?: string) => {},
 }) => {
   const [copiedType, setCopiedType] = useState<'phone' | 'email' | null>(null);
 
@@ -348,9 +350,10 @@ export const Footer: React.FC<FooterProps> = ({
               <li>
                 <button
                   onClick={onOpenAdminAd}
-                  className="hover:text-white transition-colors flex items-center gap-1.5 text-slate-500 hover:text-slate-300"
+                  className="px-2.5 py-1 text-xs font-semibold text-amber-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-amber-500/40 rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
+                  title="Manage Adsterra banner scripts"
                 >
-                  <Lock className="w-3 h-3" /> Ad Settings (Adsterra)
+                  <Lock className="w-3 h-3 text-amber-400" /> Ad Settings (Adsterra)
                 </button>
               </li>
             </ul>

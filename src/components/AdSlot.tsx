@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getActiveAdConfig, STORAGE_KEY_AD_DEMO } from '../data/adConfig';
 import { AdConfig } from '../types';
 
@@ -11,7 +11,6 @@ interface AdSlotProps {
 export const AdSlot: React.FC<AdSlotProps> = ({ slot, className = '', label = 'Advertisement' }) => {
   const [adCode, setAdCode] = useState<string>('');
   const [isDemoMode, setIsDemoMode] = useState<boolean>(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const loadAd = () => {
     const config = getActiveAdConfig();
@@ -28,27 +27,20 @@ export const AdSlot: React.FC<AdSlotProps> = ({ slot, className = '', label = 'A
     return () => window.removeEventListener('freecv_ad_config_updated', handleUpdate);
   }, [slot]);
 
-  // Execute scripts if raw HTML/scripts are injected by admin
-  useEffect(() => {
-    if (!adCode || !containerRef.current) return;
-    containerRef.current.innerHTML = adCode;
-
-    // Execute any script tags dynamically
-    const scripts = containerRef.current.querySelectorAll('script');
-    scripts.forEach((oldScript) => {
-      const newScript = document.createElement('script');
-      Array.from(oldScript.attributes).forEach((attr: Attr) => {
-        newScript.setAttribute(attr.name, attr.value);
-      });
-      newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-      oldScript.parentNode?.replaceChild(newScript, oldScript);
-    });
-  }, [adCode]);
-
   // If empty and not in demo mode, completely hide with zero footprint
   if (!adCode && !isDemoMode) {
     return null;
   }
+
+  const isScriptBased = adCode.includes('<script') || adCode.includes('invoke.js') || adCode.includes('atOptions');
+  const slotHeight =
+    slot === 'header' || slot === 'footer'
+      ? 100
+      : slot === 'mobileSticky'
+      ? 60
+      : slot === 'downloadArea'
+      ? 260
+      : 120;
 
   return (
     <div
@@ -60,15 +52,28 @@ export const AdSlot: React.FC<AdSlotProps> = ({ slot, className = '', label = 'A
           {label}
         </div>
         {adCode ? (
-          <div
-            ref={containerRef}
-            className="inline-block min-h-[50px] max-w-full overflow-hidden bg-slate-100/60 rounded-md border border-slate-200/80 p-1"
-          />
+          <div className="inline-block w-full max-w-full overflow-hidden bg-slate-50 rounded-lg border border-slate-200/80 p-1">
+            {isScriptBased ? (
+              <iframe
+                title={`ad-${slot}`}
+                srcDoc={`<!DOCTYPE html><html><head><base target="_blank"><style>html,body{margin:0;padding:0;display:flex;justify-content:center;align-items:center;background:transparent;overflow:hidden;}</style></head><body>${adCode}</body></html>`}
+                className="border-0 overflow-hidden mx-auto block"
+                style={{ width: '100%', minHeight: `${slotHeight}px`, maxWidth: '728px' }}
+                scrolling="no"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+              />
+            ) : (
+              <div
+                dangerouslySetInnerHTML={{ __html: adCode }}
+                className="flex justify-center items-center"
+              />
+            )}
+          </div>
         ) : (
           <div className="py-4 px-6 bg-slate-100/80 border border-dashed border-slate-300 rounded-lg text-xs text-slate-500 flex flex-col items-center justify-center gap-1">
             <span className="font-semibold text-slate-600">Adsterra Slot: {slot}</span>
             <span className="text-[11px] text-slate-400">
-              Clean advertising area configured. Enter your code in Admin Settings or paste into Blogger.
+              Clean advertising area configured. Click "Ad Settings" in the navbar or footer to paste your Adsterra code.
             </span>
           </div>
         )}

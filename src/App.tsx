@@ -231,12 +231,16 @@ export function App() {
       {/* Top Navigation */}
       <Navbar
         currentView={currentView}
+        activeView={currentView}
         onNavigate={(view) => {
           setCurrentView(view);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onOpenBloggerGuide={() => setIsBloggerGuideOpen(true)}
+        onOpenAdminAd={() => setIsAdminAdModalOpen(true)}
         onOpenAdminAds={() => setIsAdminAdModalOpen(true)}
+        onOpenClearConfirm={() => setIsClearModalOpen(true)}
+        onDownloadPdf={handlePrintOrDownloadPDF}
       />
 
       {/* Main Content Area */}
@@ -264,7 +268,7 @@ export function App() {
             <CategorySelectionView onSelectCategory={handleSelectCategory} />
 
             {/* Bottom Download Banner Ad slot */}
-            <AdSlot slot="downloadBottom" />
+            <AdSlot slot="downloadArea" />
 
             {/* FAQ Section */}
             <FAQSection />
@@ -466,8 +470,20 @@ export function App() {
 
       {/* Footer */}
       <Footer
+        onNavigate={(view) => {
+          setCurrentView(view);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
         onOpenStaticPage={(p) => setStaticPage(p as any)}
         onOpenBloggerGuide={() => setIsBloggerGuideOpen(true)}
+        onOpenAdminAd={() => setIsAdminAdModalOpen(true)}
+        onOpenFAQ={() => {
+          setCurrentView('home');
+          setTimeout(() => {
+            const el = document.getElementById('faq-section');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        }}
       />
 
       {/* MODALS */}
