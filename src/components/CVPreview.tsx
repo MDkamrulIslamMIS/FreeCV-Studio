@@ -535,6 +535,7 @@ export const CVPreview: React.FC<CVPreviewProps> = ({
           src={personal.photoUrl}
           alt={personal.fullName || 'Candidate Photo'}
           className="w-full h-full object-cover"
+          crossOrigin="anonymous"
           referrerPolicy="no-referrer"
         />
       </div>

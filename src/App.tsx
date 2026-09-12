@@ -17,6 +17,8 @@ import {
   ZoomIn,
   ZoomOut,
   Loader2,
+  X,
+  ExternalLink,
 } from 'lucide-react';
 import { exportCVToPDF } from './utils/pdfExport';
 
@@ -226,6 +228,7 @@ export function App() {
   // PDF generation and print handlers
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [downloadSuccessToast, setDownloadSuccessToast] = useState(false);
+  const [downloadResult, setDownloadResult] = useState<{ url: string; fileName: string } | null>(null);
 
   const handleDownloadPDF = async () => {
     if (isGeneratingPdf) return;
@@ -233,22 +236,48 @@ export function App() {
     const cleanName = rawName.replace(/[^a-zA-Z0-9_-]/g, '_');
     setIsGeneratingPdf(true);
 
-    await exportCVToPDF('cv-preview-printable', {
-      fileName: `${cleanName}_CV.pdf`,
-      onSuccess: () => {
+    // Switch to preview tab so the printable element is fully mounted and rendered in DOM
+    setBuilderTab('preview');
+
+    // Wait for state change and DOM layout reflow
+    await new Promise((resolve) => setTimeout(resolve, 180));
+
+    try {
+      const res = await exportCVToPDF('cv-preview-printable', {
+        fileName: `${cleanName}_CV.pdf`,
+        onSuccess: (result) => {
+          setIsGeneratingPdf(false);
+          setDownloadSuccessToast(true);
+          if (result.blobUrl) {
+            setDownloadResult({ url: result.blobUrl, fileName: result.fileName || `${cleanName}_CV.pdf` });
+          }
+          setTimeout(() => setDownloadSuccessToast(false), 5000);
+        },
+        onError: (err) => {
+          console.error('PDF Generation Error:', err);
+          setIsGeneratingPdf(false);
+          // Fallback: trigger native print
+          handlePrint();
+        },
+      });
+
+      if (!res.success) {
         setIsGeneratingPdf(false);
-        setDownloadSuccessToast(true);
-        setTimeout(() => setDownloadSuccessToast(false), 4500);
-      },
-      onError: (err) => {
-        console.error('PDF Generation Error:', err);
-        setIsGeneratingPdf(false);
-      },
-    });
+        handlePrint();
+      }
+    } catch (e) {
+      console.error('Export exception:', e);
+      setIsGeneratingPdf(false);
+      handlePrint();
+    }
   };
 
   const handlePrint = () => {
-    window.print();
+    setBuilderTab('preview');
+    // Ensure styles and layout are ready, then synchronously trigger print
+    setTimeout(() => {
+      window.print();
+    }, 100);
   };
 
   // Secret Owner shortcut: Ctrl+Shift+A (or Cmd+Shift+A) to open Admin Control Center
@@ -450,6 +479,10 @@ export function App() {
                   cvData={cvData}
                   onChange={setCvData}
                   selectedCategoryId={selectedCategoryId}
+                  onDownloadPdf={handleDownloadPDF}
+                  onPrint={handlePrint}
+                  onViewPreview={() => setBuilderTab('preview')}
+                  isGeneratingPdf={isGeneratingPdf}
                 />
               </div>
 
@@ -659,7 +692,83 @@ export function App() {
           </div>
           <div>
             <div className="font-bold text-sm text-white">PDF Downloaded Successfully!</div>
-            <div className="text-xs text-slate-300">Your high-resolution CV was saved to your Downloads folder.</div>
+            <div className="text-xs text-slate-300">Your high-resolution CV was saved to your device.</div>
+          </div>
+        </div>
+      )}
+
+      {/* Direct Download & Print Hub Modal */}
+      {downloadResult && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-md w-full shadow-2xl border border-slate-200 text-center space-y-4 animate-in zoom-in-95">
+            <div className="flex justify-end">
+              <button
+                onClick={() => setDownloadResult(null)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner -mt-4">
+              <CheckCircle className="w-9 h-9" />
+            </div>
+
+            <div>
+              <h3 className="text-xl font-extrabold text-slate-900">
+                Your CV is Ready to Save!
+              </h3>
+              <p className="text-xs text-slate-500 mt-1 font-mono">
+                {downloadResult.fileName}
+              </p>
+            </div>
+
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 text-left space-y-1">
+              <p className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                <Printer className="w-4 h-4 text-emerald-700" />
+                সরাসরি সেভ করার সহজ নিয়ম:
+              </p>
+              <p className="text-xs text-emerald-800 leading-relaxed">
+                নিচের <strong>&quot;Save as PDF / Print&quot;</strong> বাটনে চাপ দিন। তারপর প্রিন্ট উইন্ডোতে Destination থেকে <strong>&quot;Save as PDF&quot;</strong> সিলেক্ট করে <strong>Save</strong> বাটনে ক্লিক করলেই আপনার CV সেভ হয়ে যাবে।
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2.5 pt-2">
+              <button
+                id="modal-save-pdf-print-btn"
+                onClick={() => {
+                  setDownloadResult(null);
+                  handlePrint();
+                }}
+                className="w-full py-3.5 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all active:scale-95"
+              >
+                <Printer className="w-4 h-4" /> Save as PDF / Print Now
+              </button>
+
+              <a
+                id="modal-direct-download-link"
+                href={downloadResult.url}
+                download={downloadResult.fileName}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  setTimeout(() => setDownloadResult(null), 2000);
+                }}
+                className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all"
+              >
+                <Download className="w-3.5 h-3.5" /> Download File Directly (.pdf)
+              </a>
+
+              <a
+                href={window.location.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2 px-4 text-slate-500 hover:text-blue-600 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors"
+                title="Open full page in new tab for direct download without iframe constraints"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Open in New Tab (প্রিভিউ ছাড়া নতুন ট্যাবে খুলুন)
+              </a>
+            </div>
           </div>
         </div>
       )}

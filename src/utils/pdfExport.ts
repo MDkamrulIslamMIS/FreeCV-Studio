@@ -1,70 +1,95 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+export interface PDFExportResult {
+  success: boolean;
+  blobUrl?: string;
+  blob?: Blob;
+  fileName?: string;
+  error?: string;
+}
+
 export interface PDFExportOptions {
   fileName?: string;
   onStart?: () => void;
-  onSuccess?: () => void;
+  onSuccess?: (result: PDFExportResult) => void;
   onError?: (err: any) => void;
 }
 
 /**
- * Generates and downloads a crystal-clear A4 PDF of the CV
+ * Bulletproof, high-resolution A4 PDF generator.
+ * Uses a clean off-screen clone with exact 794px A4 dimensions,
+ * eliminating parent transforms, zoom, and container constraints.
  */
 export async function exportCVToPDF(
   elementId: string = 'cv-preview-printable',
   options: PDFExportOptions = {}
-): Promise<boolean> {
+): Promise<PDFExportResult> {
   const { fileName = 'Professional_CV.pdf', onStart, onSuccess, onError } = options;
 
-  const originalElement = document.getElementById(elementId);
-  if (!originalElement) {
-    const errorMsg = `CV element with id "${elementId}" was not found.`;
+  const targetElement = document.getElementById(elementId);
+  if (!targetElement) {
+    const errorMsg = `CV element with id "${elementId}" not found.`;
     console.error(errorMsg);
     onError?.(new Error(errorMsg));
-    return false;
+    return { success: false, error: errorMsg };
   }
 
   onStart?.();
 
-  // Create an offscreen wrapper to isolate from any CSS zoom/transform
-  const container = document.createElement('div');
-  container.style.position = 'fixed';
-  container.style.left = '-9999px';
-  container.style.top = '0';
-  container.style.width = '794px'; // Exact A4 width in pixels at 96dpi
-  container.style.backgroundColor = '#ffffff';
-  container.style.zIndex = '-9999';
+  // Create an offscreen wrapper to render the CV free of parent transforms
+  const offscreenContainer = document.createElement('div');
+  offscreenContainer.style.position = 'fixed';
+  offscreenContainer.style.left = '-9999px';
+  offscreenContainer.style.top = '0';
+  offscreenContainer.style.width = '794px'; // 210mm in standard 96dpi web pixels
+  offscreenContainer.style.background = '#ffffff';
+  offscreenContainer.style.zIndex = '-9999';
+  offscreenContainer.style.overflow = 'visible';
 
   // Clone the CV preview node
-  const clone = originalElement.cloneNode(true) as HTMLElement;
+  const clone = targetElement.cloneNode(true) as HTMLElement;
   clone.style.transform = 'none';
   clone.style.margin = '0';
-  clone.style.width = '794px';
   clone.style.boxShadow = 'none';
+  clone.style.width = '794px';
 
-  // Remove preview-only helpers from clone (like page cut markers)
-  const previewOnlyEls = clone.querySelectorAll('.print\\:hidden, [data-preview-only="true"]');
+  // Remove preview-only elements in clone
+  const previewOnlyEls = clone.querySelectorAll<HTMLElement>('.print\\:hidden, [data-preview-only="true"]');
   previewOnlyEls.forEach((el) => el.remove());
 
-  container.appendChild(clone);
-  document.body.appendChild(container);
+  // Ensure all images in clone have crossOrigin set
+  const images = clone.getElementsByTagName('img');
+  for (let i = 0; i < images.length; i++) {
+    const img = images[i];
+    if (img.src && !img.src.startsWith('data:')) {
+      img.crossOrigin = 'anonymous';
+    }
+  }
+
+  offscreenContainer.appendChild(clone);
+  document.body.appendChild(offscreenContainer);
 
   try {
-    // Wait for any images or fonts inside the clone to settle
-    await new Promise((resolve) => setTimeout(resolve, 150));
+    // Short wait for DOM attachment
+    await new Promise((resolve) => setTimeout(resolve, 80));
 
+    // Render using html2canvas
     const canvas = await html2canvas(clone, {
-      scale: 2, // 2x for sharp print resolution
+      scale: 2, // Crisp 300dpi-equivalent print quality
       useCORS: true,
-      allowTaint: true,
-      logging: false,
+      allowTaint: false,
       backgroundColor: '#ffffff',
-      width: 794,
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
       windowWidth: 794,
     });
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+    // Create high-quality JPEG data URL from canvas
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+    // Initialize jsPDF with standard A4 measurements
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -72,18 +97,18 @@ export async function exportCVToPDF(
       compress: true,
     });
 
-    const pdfWidth = 210; // A4 standard width in mm
-    const pdfHeight = 297; // A4 standard height in mm
+    const pdfWidth = 210; // A4 width in mm
+    const pdfHeight = 297; // A4 height in mm
     const imgHeight = (canvas.height * pdfWidth) / canvas.width;
 
     let heightLeft = imgHeight;
     let position = 0;
 
-    // First page
+    // Add first page
     pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, imgHeight, undefined, 'FAST');
     heightLeft -= pdfHeight;
 
-    // Multi-page support if the CV content is longer than 1 A4 page
+    // Add subsequent pages if CV content overflows 1 A4 page
     while (heightLeft > 5) {
       position = heightLeft - imgHeight;
       pdf.addPage();
@@ -92,25 +117,51 @@ export async function exportCVToPDF(
     }
 
     const safeFileName = fileName.endsWith('.pdf') ? fileName : `${fileName}.pdf`;
-    pdf.save(safeFileName);
 
-    onSuccess?.();
-    return true;
-  } catch (err) {
-    console.error('PDF generation error:', err);
+    // Generate binary blob & URL
+    const blob = pdf.output('blob');
+    const blobUrl = URL.createObjectURL(blob);
+
+    // Trigger download via anchor element
+    try {
+      const downloadLink = document.createElement('a');
+      downloadLink.href = blobUrl;
+      downloadLink.download = safeFileName;
+      downloadLink.target = '_blank';
+      downloadLink.style.display = 'none';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      setTimeout(() => {
+        if (document.body.contains(downloadLink)) {
+          document.body.removeChild(downloadLink);
+        }
+      }, 3000);
+    } catch (clickErr) {
+      console.warn('Programmatic download click failed, providing blob URL to UI:', clickErr);
+    }
+
+    const result: PDFExportResult = {
+      success: true,
+      blobUrl,
+      blob,
+      fileName: safeFileName,
+    };
+
+    onSuccess?.(result);
+    return result;
+  } catch (err: any) {
+    console.error('HTML to PDF export failed:', err);
     onError?.(err);
 
-    // Fallback: Attempt standard browser print dialog
-    try {
-      window.print();
-    } catch (printErr) {
-      console.error('Fallback print also failed:', printErr);
-    }
-    return false;
+    return {
+      success: false,
+      error: err?.message || 'Failed to generate PDF',
+    };
   } finally {
-    // Clean up temporary DOM container
-    if (document.body.contains(container)) {
-      document.body.removeChild(container);
+    // Clean up offscreen clone
+    if (document.body.contains(offscreenContainer)) {
+      document.body.removeChild(offscreenContainer);
     }
   }
 }
+
