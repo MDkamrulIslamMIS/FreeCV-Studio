@@ -16,7 +16,9 @@ import {
   ChevronRight,
   ZoomIn,
   ZoomOut,
+  Loader2,
 } from 'lucide-react';
+import { exportCVToPDF } from './utils/pdfExport';
 
 import {
   CVData,
@@ -221,8 +223,31 @@ export function App() {
     setCvData(EMPTY_CV);
   };
 
-  // Print & PDF Download handlers
-  const handlePrintOrDownloadPDF = () => {
+  // PDF generation and print handlers
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [downloadSuccessToast, setDownloadSuccessToast] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    if (isGeneratingPdf) return;
+    const rawName = cvData.personal.fullName?.trim() || 'Professional_CV';
+    const cleanName = rawName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    setIsGeneratingPdf(true);
+
+    await exportCVToPDF('cv-preview-printable', {
+      fileName: `${cleanName}_CV.pdf`,
+      onSuccess: () => {
+        setIsGeneratingPdf(false);
+        setDownloadSuccessToast(true);
+        setTimeout(() => setDownloadSuccessToast(false), 4500);
+      },
+      onError: (err) => {
+        console.error('PDF Generation Error:', err);
+        setIsGeneratingPdf(false);
+      },
+    });
+  };
+
+  const handlePrint = () => {
     window.print();
   };
 
@@ -252,7 +277,7 @@ export function App() {
         onOpenAdminAd={() => setIsAdminAdModalOpen(true)}
         onOpenAdminAds={() => setIsAdminAdModalOpen(true)}
         onOpenClearConfirm={() => setIsClearModalOpen(true)}
-        onDownloadPdf={handlePrintOrDownloadPDF}
+        onDownloadPdf={handleDownloadPDF}
       />
 
       {/* Main Content Area */}
@@ -353,20 +378,33 @@ export function App() {
 
                 <button
                   id="builder-print-btn"
-                  onClick={handlePrintOrDownloadPDF}
+                  onClick={handlePrint}
                   className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 transition-all"
-                  title="Print directly to paper"
+                  title="Print directly to paper or save as PDF"
                 >
                   <Printer className="w-3.5 h-3.5" /> Print CV
                 </button>
 
                 <button
                   id="builder-download-pdf-btn"
-                  onClick={handlePrintOrDownloadPDF}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/20 flex items-center gap-1.5 transition-all"
-                  title="Download clean A4 PDF"
+                  onClick={handleDownloadPDF}
+                  disabled={isGeneratingPdf}
+                  className={`px-4 py-2 text-white text-xs font-bold rounded-xl shadow-md shadow-blue-600/20 flex items-center gap-1.5 transition-all ${
+                    isGeneratingPdf
+                      ? 'bg-blue-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 active:scale-95'
+                  }`}
+                  title="Directly download clean A4 PDF file"
                 >
-                  <Download className="w-4 h-4" /> Download PDF
+                  {isGeneratingPdf ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Generating PDF...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" /> Download PDF
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -465,13 +503,61 @@ export function App() {
                   </div>
                 </div>
 
+                {/* Dedicated PDF Download & Export Action Card */}
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-3 print:hidden">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                        <Download className="w-4 h-4 text-blue-600" />
+                        Ready to Download Your Professional CV?
+                      </h4>
+                      <p className="text-xs text-slate-500">
+                        100% Free • High-Resolution Vector A4 • ATS-Friendly
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <button
+                        onClick={handlePrint}
+                        className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 border border-slate-300"
+                        title="Open system print dialogue"
+                      >
+                        <Printer className="w-3.5 h-3.5" /> Print
+                      </button>
+
+                      <button
+                        onClick={handleDownloadPDF}
+                        disabled={isGeneratingPdf}
+                        className={`flex-1 sm:flex-initial px-5 py-2.5 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 ${
+                          isGeneratingPdf
+                            ? 'bg-blue-400 cursor-not-allowed'
+                            : 'bg-blue-600 hover:bg-blue-700 active:scale-95 shadow-blue-600/30'
+                        }`}
+                      >
+                        {isGeneratingPdf ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Creating PDF...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="w-4 h-4" />
+                            Download PDF (.pdf)
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* High-value Download Area Ad Slot */}
+                  <AdSlot slot="downloadArea" />
+                </div>
+
                 {/* Helpful Recruiter & Print Tip */}
                 <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-xs text-blue-900 print:hidden flex items-start gap-2">
                   <HelpCircle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                   <p className="leading-relaxed">
-                    <strong>Export Tip:</strong> When the print dialogue opens, choose{' '}
-                    <strong>"Save as PDF"</strong>, Paper size <strong>A4</strong>, and check{' '}
-                    <strong>"Background graphics"</strong> to capture vibrant headers and divider accents.
+                    <strong>Export Tip:</strong> Clicking <strong>"Download PDF"</strong> will instantly generate and save an official A4 PDF document to your device. You can also use <strong>"Print"</strong> to send it straight to a physical printer or choose <em>"Save as PDF"</em> in your browser.
                   </p>
                 </div>
               </div>
@@ -561,6 +647,19 @@ export function App() {
                 onToggleFavorite={handleToggleFavorite}
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Download Success Toast Notification */}
+      {downloadSuccessToast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-950 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-emerald-500/50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
+          <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/40">
+            <CheckCircle className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="font-bold text-sm text-white">PDF Downloaded Successfully!</div>
+            <div className="text-xs text-slate-300">Your high-resolution CV was saved to your Downloads folder.</div>
           </div>
         </div>
       )}
